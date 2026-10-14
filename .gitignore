@@ -1,0 +1,40 @@
+# Environment variables / secrets
+.env
+
+req.txt
+
+# Python virtual environments
+venv/
+.venv/
+myenv/
+env/
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# IDE
+.vscode/
+.idea/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Testing/cache
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Logs
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Streamlit secrets
+.streamlit/secrets.toml
+
+# Generated embedding cache
+data/embedding/dense_vector.json

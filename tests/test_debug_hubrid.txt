@@ -1,0 +1,102 @@
+def hybrid_corrective_reterieval_node(state:RagState)->dict:
+    action = state["next_step"]
+    updates = {}
+    if action == "rag":
+        rag_output = corrective_rag_pipeline(query=state.get("corrective_rag_query",""),role=state["role"])
+        print("\n======================================")
+        print("CORRECTIVE RAG DEBUG")
+        print("======================================")
+
+        print("\nCORRECTIVE QUERY:")
+        print(state.get("corrective_rag_query"))
+
+        print("\nNEW CORRECTIVE RESULTS:")
+
+        for result in rag_output["result"]:
+            print("\n--------------------")
+            print("ID:", result["id"])  
+            print("FILE:", result["metadata"].get("file_name"))
+            print("SECTION:", result["metadata"].get("section"))     
+            print("ACCESS:", result["metadata"].get("access_level"))
+            print("RERANK SCORE:", result.get("rerank_score"))
+            print("TEXT:")
+            print(result["metadata"].get("chunk_text"))
+        merged_result = merge_rag_results(old_context=state.get("relevant_results",[]),
+                                            new_context=rag_output["result"])
+        print("\n======================================")
+        print("MERGED RAG RESULTS")
+        print("======================================")
+
+        for result in merged_result:
+            print(
+                result["id"],
+                "|",
+               result["metadata"].get("file_name"),
+               "|",
+               result["metadata"].get("section"),
+               "| score:",
+              result.get("rerank_score"))
+        final_context = build_context(results=merged_result)
+        print("\n======================================")
+        print("FINAL RAG CONTEXT")
+        print("======================================")
+        print(final_context)
+        return {"relevant_results":merged_result,
+                "rag_context":final_context,
+                "hybrid_retry_count": state.get("hybrid_retry_count",0)+1}
+    elif action == "sql":
+        sql_output = corrective_sql_pipeline(query=state.get("corrective_sql_query",""),role=state["role"])
+        merged_context  = merge_sql_context(old_context=state.get("sql_context",""),
+                                       new_context=sql_output["context"])
+        return {"sql_context":merged_context,
+               "hybrid_retry_count": state.get("hybrid_retry_count",0)+1}
+    elif action == "both":
+        sql_output = corrective_sql_pipeline(query=state.get("corrective_sql_query",""),role=state["role"])
+        merged_context  = merge_sql_context(old_context=state.get("sql_context",""),
+                                               new_context=sql_output["context"])
+        rag_output = corrective_rag_pipeline(query=state.get("corrective_rag_query",""),role=state["role"])
+        print("\n======================================")
+        print("CORRECTIVE RAG DEBUG")
+        print("======================================")
+
+        print("\nCORRECTIVE QUERY:")
+        print(state.get("corrective_rag_query"))
+
+        print("\nNEW CORRECTIVE RESULTS:")
+
+        for result in rag_output["result"]:
+            print("\n--------------------")
+            print("ID:", result["id"])
+            print("FILE:", result["metadata"].get("file_name"))
+            print("SECTION:", result["metadata"].get("section"))
+            print("ACCESS:", result["metadata"].get("access_level"))
+            print("RERANK SCORE:", result.get("rerank_score"))
+            print("TEXT:")
+            print(result["metadata"].get("chunk_text"))
+        merged_result = merge_rag_results(old_context=state.get("relevant_results",[]),
+                                                    new_context=rag_output["result"])
+        print("\n======================================")
+        print("MERGED RAG RESULTS")
+        print("======================================")
+        
+        for result in merged_result:
+            print(
+                result["id"],
+                "|",
+                result["metadata"].get("file_name"),
+               "|",
+               result["metadata"].get("section"),
+               "| score:",
+              result.get("rerank_score"))
+        final_context = build_context(results=merged_result)
+        print("\n======================================")
+        print("FINAL RAG CONTEXT")
+        print("======================================")
+        print(final_context)
+
+        return {"sql_context":merged_context,
+               "hybrid_retry_count": state.get("hybrid_retry_count",0)+1,
+               "relevant_results":merged_result,
+               "rag_context":final_context}
+    else:
+        raise ValueError(f"Invalid corrective retrival action: {action}")
